@@ -20,6 +20,7 @@
 #import "CDVInAppBrowser.h"
 #import <Cordova/CDVPluginResult.h>
 #import <Cordova/CDVUserAgentUtil.h>
+#import <Cordova/CDVJSON.h>
 
 #define    kInAppBrowserTargetSelf @"_self"
 #define    kInAppBrowserTargetSystem @"_system"
@@ -41,10 +42,15 @@
 
 @implementation CDVInAppBrowser
 
-- (void)pluginInitialize
+- (CDVInAppBrowser*)initWithWebView:(UIWebView*)theWebView
 {
-    _previousStatusBarStyle = -1;
-    _callbackIdPattern = nil;
+    self = [super initWithWebView:theWebView];
+    if (self != nil) {
+        _previousStatusBarStyle = -1;
+        _callbackIdPattern = nil;
+    }
+
+    return self;
 }
 
 - (void)onReset
@@ -82,11 +88,7 @@
     self.callbackId = command.callbackId;
 
     if (url != nil) {
-#ifdef __CORDOVA_4_0_0
-        NSURL* baseUrl = [self.webViewEngine URL];
-#else
         NSURL* baseUrl = [self.webView.request URL];
-#endif
         NSURL* absoluteUrl = [[NSURL URLWithString:url relativeToURL:baseUrl] absoluteURL];
 
         if ([self isSystemUrl:absoluteUrl]) {
@@ -214,36 +216,26 @@
 
     _previousStatusBarStyle = [UIApplication sharedApplication].statusBarStyle;
 
-    __block CDVInAppBrowserNavigationController* nav = [[CDVInAppBrowserNavigationController alloc]
+    CDVInAppBrowserNavigationController* nav = [[CDVInAppBrowserNavigationController alloc]
                                    initWithRootViewController:self.inAppBrowserViewController];
     nav.orientationDelegate = self.inAppBrowserViewController;
     nav.navigationBarHidden = YES;
-
-    __weak CDVInAppBrowser* weakSelf = self;
-
     // Run later to avoid the "took a long time" log message.
     dispatch_async(dispatch_get_main_queue(), ^{
-        if (weakSelf.inAppBrowserViewController != nil) {
-            [weakSelf.viewController presentViewController:nav animated:YES completion:nil];
+        if (self.inAppBrowserViewController != nil) {
+            [self.viewController presentViewController:nav animated:YES completion:nil];
         }
     });
 }
 
 - (void)openInCordovaWebView:(NSURL*)url withOptions:(NSString*)options
 {
-    NSURLRequest* request = [NSURLRequest requestWithURL:url];
-
-#ifdef __CORDOVA_4_0_0
-    // the webview engine itself will filter for this according to <allow-navigation> policy
-    // in config.xml for cordova-ios-4.0
-    [self.webViewEngine loadRequest:request];
-#else
     if ([self.commandDelegate URLIsWhitelisted:url]) {
+        NSURLRequest* request = [NSURLRequest requestWithURL:url];
         [self.webView loadRequest:request];
     } else { // this assumes the InAppBrowser can be excepted from the white-list
         [self openInInAppBrowser:url withOptions:options];
     }
-#endif
 }
 
 - (void)openInSystem:(NSURL*)url
@@ -266,12 +258,14 @@
 
 - (void)injectDeferredObject:(NSString*)source withWrapper:(NSString*)jsWrapper
 {
-    // Ensure an iframe bridge is created to communicate with the CDVInAppBrowserViewController
-    [self.inAppBrowserViewController.webView stringByEvaluatingJavaScriptFromString:@"(function(d){_cdvIframeBridge=d.getElementById('_cdvIframeBridge');if(!_cdvIframeBridge) {var e = _cdvIframeBridge = d.createElement('iframe');e.id='_cdvIframeBridge'; e.style.display='none';d.body.appendChild(e);}})(document)"];
+    if (!_injectedIframeBridge) {
+        _injectedIframeBridge = YES;
+        // Create an iframe bridge in the new document to communicate with the CDVInAppBrowserViewController
+        [self.inAppBrowserViewController.webView stringByEvaluatingJavaScriptFromString:@"(function(d){var e = _cdvIframeBridge = d.createElement('iframe');e.style.display='none';d.body.appendChild(e);})(document)"];
+    }
 
     if (jsWrapper != nil) {
-        NSData* jsonData = [NSJSONSerialization dataWithJSONObject:@[source] options:0 error:nil];
-        NSString* sourceArrayString = [[NSString alloc] initWithData:jsonData encoding:NSUTF8StringEncoding];
+        NSString* sourceArrayString = [@[source] JSONString];
         if (sourceArrayString) {
             NSString* sourceString = [sourceArrayString substringWithRange:NSMakeRange(1, [sourceArrayString length] - 2)];
             NSString* jsToInject = [NSString stringWithFormat:jsWrapper, sourceString];
@@ -404,6 +398,7 @@
 
 - (void)webViewDidStartLoad:(UIWebView*)theWebView
 {
+    _injectedIframeBridge = NO;
 }
 
 - (void)webViewDidFinishLoad:(UIWebView*)theWebView
@@ -446,9 +441,7 @@
     self.inAppBrowserViewController = nil;
 
     if (IsAtLeastiOSVersion(@"7.0")) {
-        if (_previousStatusBarStyle != -1) {
-            [[UIApplication sharedApplication] setStatusBarStyle:_previousStatusBarStyle];
-        }
+        [[UIApplication sharedApplication] setStatusBarStyle:_previousStatusBarStyle];
     }
 
     _previousStatusBarStyle = -1; // this value was reset before reapplying it. caused statusbar to stay black on ios7
@@ -469,21 +462,11 @@
         _userAgent = userAgent;
         _prevUserAgent = prevUserAgent;
         _browserOptions = browserOptions;
-#ifdef __CORDOVA_4_0_0
-        _webViewDelegate = [[CDVUIWebViewDelegate alloc] initWithDelegate:self];
-#else
         _webViewDelegate = [[CDVWebViewDelegate alloc] initWithDelegate:self];
-#endif
-        
         [self createViews];
     }
 
     return self;
-}
-
-// Prevent crashes on closing windows
--(void)dealloc {
-   self.webView.delegate = nil;
 }
 
 - (void)createViews
@@ -511,15 +494,15 @@
     self.webView.scalesPageToFit = NO;
     self.webView.userInteractionEnabled = YES;
 
-    self.spinner = [[UIActivityIndicatorView alloc] initWithActivityIndicatorStyle:UIActivityIndicatorViewStyleGray];
+    self.spinner = [[UIActivityIndicatorView alloc] initWithActivityIndicatorStyle:UIActivityIndicatorViewStyleWhite];
     self.spinner.alpha = 1.000;
     self.spinner.autoresizesSubviews = YES;
-    self.spinner.autoresizingMask = (UIViewAutoresizingFlexibleLeftMargin | UIViewAutoresizingFlexibleTopMargin | UIViewAutoresizingFlexibleBottomMargin | UIViewAutoresizingFlexibleRightMargin);
+    self.spinner.autoresizingMask = UIViewAutoresizingFlexibleLeftMargin | UIViewAutoresizingFlexibleTopMargin;
     self.spinner.clearsContextBeforeDrawing = NO;
     self.spinner.clipsToBounds = NO;
     self.spinner.contentMode = UIViewContentModeScaleToFill;
-    self.spinner.frame = CGRectMake(CGRectGetMidX(self.webView.frame), CGRectGetMidY(self.webView.frame), 20.0, 20.0);
-    self.spinner.hidden = NO;
+    self.spinner.frame = CGRectMake(454.0, 231.0, 20.0, 20.0);
+    self.spinner.hidden = YES;
     self.spinner.hidesWhenStopped = YES;
     self.spinner.multipleTouchEnabled = NO;
     self.spinner.opaque = NO;
@@ -549,6 +532,9 @@
     self.toolbar.multipleTouchEnabled = NO;
     self.toolbar.opaque = NO;
     self.toolbar.userInteractionEnabled = YES;
+	//Dahil Change //
+	self.toolbar.backgroundColor = [UIColor colorWithRed:139.0 / 255.0 green:69.0 / 255.0 blue:19.0 / 255.0 alpha:1];
+	 
 
     CGFloat labelInset = 5.0;
     float locationBarY = toolbarIsAtBottom ? self.view.bounds.size.height - FOOTER_HEIGHT : self.view.bounds.size.height - LOCATIONBAR_HEIGHT;
@@ -592,7 +578,9 @@
     self.backButton.enabled = YES;
     self.backButton.imageInsets = UIEdgeInsetsZero;
 
-    [self.toolbar setItems:@[self.closeButton, flexibleSpaceButton, self.backButton, fixedSpaceButton, self.forwardButton]];
+	/** Dahil toolbar changes **/
+    //[self.toolbar setItems:@[self.closeButton, flexibleSpaceButton, self.backButton, fixedSpaceButton, self.forwardButton]];
+	[self.toolbar setItems:@[self.closeButton]];
 
     self.view.backgroundColor = [UIColor grayColor];
     [self.view addSubview:self.toolbar];
@@ -748,6 +736,7 @@
     return UIStatusBarStyleDefault;
 }
 
+
 - (void)close
 {
     [CDVUserAgentUtil releaseLock:&_userAgentLockToken];
@@ -757,17 +746,17 @@
         [self.navigationDelegate browserExit];
     }
 
-    __weak UIViewController* weakSelf = self;
-
     // Run later to avoid the "took a long time" log message.
     dispatch_async(dispatch_get_main_queue(), ^{
-        if ([weakSelf respondsToSelector:@selector(presentingViewController)]) {
-            [[weakSelf presentingViewController] dismissViewControllerAnimated:YES completion:nil];
+        if ([self respondsToSelector:@selector(presentingViewController)]) {
+            [[self presentingViewController] dismissViewControllerAnimated:YES completion:nil];
         } else {
-            [[weakSelf parentViewController] dismissViewControllerAnimated:YES completion:nil];
+            [[self parentViewController] dismissViewControllerAnimated:YES completion:nil];
         }
     });
 }
+
+
 
 - (void)navigateTo:(NSURL*)url
 {
@@ -776,14 +765,47 @@
     if (_userAgentLockToken != 0) {
         [self.webView loadRequest:request];
     } else {
-        __weak CDVInAppBrowserViewController* weakSelf = self;
         [CDVUserAgentUtil acquireLock:^(NSInteger lockToken) {
             _userAgentLockToken = lockToken;
             [CDVUserAgentUtil setUserAgent:_userAgent lockToken:lockToken];
-            [weakSelf.webView loadRequest:request];
+            [self.webView loadRequest:request];
         }];
     }
 }
+
+
+/**
+ * TUSK dialog (Dahil change)
+ * 
+ * @throws IOException
+ * @throws UnsupportedEncodingException
+ */
+- (void) tuskDialog:(NSString *)url title:(NSString *)title {
+
+  @try {
+   
+	if (self.callbackId != nil) {
+	    CDVPluginResult* pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK
+                                                      messageAsDictionary:@{@"type":@"exit", @"url":[url absoluteString], @"title":[title absoluteString], @"exitcode":@"1"}];
+        [self.commandDelegate sendPluginResult:pluginResult callbackId:self.callbackId];
+        self.callbackId = nil;
+    }
+
+    self.inAppBrowserViewController.navigationDelegate = nil;
+    self.inAppBrowserViewController = nil;
+
+    if (IsAtLeastiOSVersion(@"7.0")) {
+        [[UIApplication sharedApplication] setStatusBarStyle:_previousStatusBarStyle];
+    }
+
+    _previousStatusBarStyle = -1; // this value was reset before reapplying it. caused statusbar to stay black on ios7
+
+  }
+  @catch (JSONException * e) {
+  }
+}
+
+
 
 - (void)goBack:(id)sender
 {
@@ -986,20 +1008,6 @@
 @end
 
 @implementation CDVInAppBrowserNavigationController : UINavigationController
-
-- (void) viewDidLoad {
-
-    CGRect frame = [UIApplication sharedApplication].statusBarFrame;
-
-    // simplified from: http://stackoverflow.com/a/25669695/219684
-
-    UIToolbar* bgToolbar = [[UIToolbar alloc] initWithFrame:frame];
-    bgToolbar.barStyle = UIBarStyleDefault;
-    [self.view addSubview:bgToolbar];
-
-    [super viewDidLoad];
-}
-
 
 #pragma mark CDVScreenOrientationDelegate
 

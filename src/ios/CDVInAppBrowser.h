@@ -20,16 +20,12 @@
 #import <Cordova/CDVPlugin.h>
 #import <Cordova/CDVInvokedUrlCommand.h>
 #import <Cordova/CDVScreenOrientationDelegate.h>
-
-#ifdef __CORDOVA_4_0_0
-    #import <Cordova/CDVUIWebViewDelegate.h>
-#else
-    #import <Cordova/CDVWebViewDelegate.h>
-#endif
+#import <Cordova/CDVWebViewDelegate.h>
 
 @class CDVInAppBrowserViewController;
 
-@interface CDVInAppBrowser : CDVPlugin {
+@interface TuskInAppBrowser : CDVPlugin {
+    BOOL _injectedIframeBridge;
 }
 
 @property (nonatomic, retain) CDVInAppBrowserViewController* inAppBrowserViewController;
@@ -73,13 +69,7 @@
     NSString* _prevUserAgent;
     NSInteger _userAgentLockToken;
     CDVInAppBrowserOptions *_browserOptions;
-    
-#ifdef __CORDOVA_4_0_0
-    CDVUIWebViewDelegate* _webViewDelegate;
-#else
     CDVWebViewDelegate* _webViewDelegate;
-#endif
-    
 }
 
 @property (nonatomic, strong) IBOutlet UIWebView* webView;
