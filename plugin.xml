@@ -18,36 +18,37 @@
   under the License.
 -->
 
-<plugin xmlns="http://apache.org/cordova/ns/plugins/1.0"
-           id="cordova-plugin-inappbrowser"
-      version="1.1.2-dev">
+<plugin xmlns="http://apache.org/tusk/ns/plugins/1.0"
+           id="tusk-plugin-inappbrowser"
+           version="1.0">
 
     <name>InAppBrowser</name>
-    <description>Cordova InAppBrowser Plugin</description>
+    <description>Tusk InAppBrowser Plugin</description>
     <license>Apache 2.0</license>
-    <keywords>cordova,in,app,browser,inappbrowser</keywords>
-    <repo>https://git-wip-us.apache.org/repos/asf/cordova-plugin-inappbrowser.git</repo>
+    <keywords>tusk,in,app,browser,inappbrowser</keywords>
+    <repo>https://git-wip-us.apache.org/repos/asf/tusk-plugin-inappbrowser.git</repo>
     <issue>https://issues.apache.org/jira/browse/CB/component/12320641</issue>
 
     <engines>
-      <engine name="cordova" version=">=3.1.0" /><!-- Needs cordova/urlutil -->
+      <!--<engine name="cordova" version=">=3.1.0" />-->
     </engines>
 
     <!-- android -->
     <platform name="android">
         <js-module src="www/inappbrowser.js" name="inappbrowser">
+            <clobbers target="tusk.InAppBrowser.open" />
             <clobbers target="cordova.InAppBrowser.open" />
             <clobbers target="window.open" />
         </js-module>
         <config-file target="res/xml/config.xml" parent="/*">
             <feature name="InAppBrowser"> 
-                <param name="android-package" value="org.apache.cordova.inappbrowser.InAppBrowser"/>
+                <param name="android-package" value="org.apache.tusk.inappbrowser.InAppBrowser"/>
             </feature>
         </config-file>
 
-        <source-file src="src/android/InAppBrowser.java" target-dir="src/org/apache/cordova/inappbrowser" />
-        <source-file src="src/android/InAppBrowserDialog.java" target-dir="src/org/apache/cordova/inappbrowser" />
-        <source-file src="src/android/InAppChromeClient.java" target-dir="src/org/apache/cordova/inappbrowser" />
+        <source-file src="src/android/InAppBrowser.java" target-dir="src/org/apache/tusk/inappbrowser" />
+        <source-file src="src/android/InAppBrowserDialog.java" target-dir="src/org/apache/tusk/inappbrowser" />
+        <source-file src="src/android/InAppChromeClient.java" target-dir="src/org/apache/tusk/inappbrowser" />
 
         <!--  drawable src/android/resources -->
         <resource-file src="src/android/res/drawable-hdpi/ic_action_next_item.png" target="res/drawable-hdpi/ic_action_next_item.png" />
@@ -70,18 +71,18 @@
     <!-- amazon-fireos -->
     <platform name="amazon-fireos">
         <js-module src="www/inappbrowser.js" name="inappbrowser">
-            <clobbers target="cordova.InAppBrowser.open" />
+            <clobbers target="tusk.InAppBrowser.open" />
             <clobbers target="window.open" />
         </js-module>
         <config-file target="res/xml/config.xml" parent="/*">
             <feature name="InAppBrowser"> 
-                <param name="android-package" value="org.apache.cordova.inappbrowser.InAppBrowser"/>
+                <param name="android-package" value="org.apache.tusk.inappbrowser.InAppBrowser"/>
             </feature>
         </config-file>
 
-        <source-file src="src/amazon/InAppBrowser.java" target-dir="src/org/apache/cordova/inappbrowser" />
-        <source-file src="src/android/InAppBrowserDialog.java" target-dir="src/org/apache/cordova/inappbrowser" />
-        <source-file src="src/amazon/InAppChromeClient.java" target-dir="src/org/apache/cordova/inappbrowser" />
+        <source-file src="src/amazon/InAppBrowser.java" target-dir="src/org/apache/tusk/inappbrowser" />
+        <source-file src="src/android/InAppBrowserDialog.java" target-dir="src/org/apache/tusk/inappbrowser" />
+        <source-file src="src/amazon/InAppChromeClient.java" target-dir="src/org/apache/tusk/inappbrowser" />
         
         <!--  drawable src/android/resources -->
         <resource-file src="src/android/res/drawable-hdpi/ic_action_next_item.png" target="res/drawable-hdpi/ic_action_next_item.png" />
@@ -103,7 +104,7 @@
     <!-- ubuntu -->
     <platform name="ubuntu">
         <js-module src="www/inappbrowser.js" name="inappbrowser">
-            <clobbers target="cordova.InAppBrowser.open" />
+            <clobbers target="tusk.InAppBrowser.open" />
             <clobbers target="window.open" />
         </js-module>
         <header-file src="src/ubuntu/inappbrowser.h" />
@@ -116,7 +117,7 @@
     <!-- ios -->
     <platform name="ios">
         <js-module src="www/inappbrowser.js" name="inappbrowser">
-            <clobbers target="cordova.InAppBrowser.open" />
+            <clobbers target="tusk.InAppBrowser.open" />
             <clobbers target="window.open" />
         </js-module>  
         <config-file target="config.xml" parent="/*">
@@ -138,7 +139,7 @@
         </config-file>
 
         <js-module src="www/inappbrowser.js" name="inappbrowser">
-            <clobbers target="cordova.InAppBrowser.open" />
+            <clobbers target="tusk.InAppBrowser.open" />
             <clobbers target="window.open" />
         </js-module>
         <config-file target="config.xml" parent="/*">
@@ -161,7 +162,7 @@
         </config-file>
                 
         <js-module src="www/inappbrowser.js" name="inappbrowser">
-            <clobbers target="cordova.InAppBrowser.open" />
+            <clobbers target="tusk.InAppBrowser.open" />
             <clobbers target="window.open" />
         </js-module>
         <config-file target="config.xml" parent="/*">
@@ -180,7 +181,7 @@
     <!-- windows8 -->
     <platform name="windows8">
         <js-module src="www/inappbrowser.js" name="inappbrowser">
-            <clobbers target="cordova.InAppBrowser.open" />
+            <clobbers target="tusk.InAppBrowser.open" />
             <clobbers target="window.open" />
         </js-module>
         <js-module src="www/windows8/InAppBrowserProxy.js" name="InAppBrowserProxy">
@@ -191,7 +192,7 @@
     <!-- windows universal apps (Windows 8.1, Windows Phone 8.1, Windows 8.0) -->
     <platform name="windows">
         <js-module src="www/inappbrowser.js" name="inappbrowser">
-            <clobbers target="cordova.InAppBrowser.open" />
+            <clobbers target="tusk.InAppBrowser.open" />
             <clobbers target="window.open" />
         </js-module>
         <js-module src="src/windows/InAppBrowserProxy.js" name="InAppBrowserProxy">
@@ -206,7 +207,7 @@
             <permission name="browser" description="Enables the app to implement a browser in an iframe." privileged="true"/>
         </config-file>
         <js-module src="www/inappbrowser.js" name="inappbrowser">
-            <clobbers target="cordova.InAppBrowser.open" />
+            <clobbers target="tusk.InAppBrowser.open" />
             <clobbers target="window.open" />
         </js-module>
         <js-module src="src/firefoxos/InAppBrowserProxy.js" name="InAppBrowserProxy">
@@ -217,7 +218,7 @@
     <!-- browser -->
     <platform name="browser">
         <js-module src="www/inappbrowser.js" name="inappbrowser">
-            <clobbers target="cordova.InAppBrowser.open" />
+            <clobbers target="tusk.InAppBrowser.open" />
             <clobbers target="window.open" />
         </js-module>
         <js-module src="src/browser/InAppBrowserProxy.js" name="InAppBrowserProxy">
