@@ -22,6 +22,7 @@
 This plugin provides a web browser view that displays when calling `cordova.InAppBrowser.open()`.
 
     var ref = cordova.InAppBrowser.open('http://apache.org', '_blank', 'location=yes'); 
+    Created an issue with MyEclipse. This feature does not work on iOS emulator !!!
 
 The `cordova.InAppBrowser.open()` function is defined to be a drop-in replacement
 for the `window.open()` function.  Existing `window.open()` calls can use the
